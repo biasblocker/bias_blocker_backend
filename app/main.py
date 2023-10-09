@@ -26,8 +26,8 @@ app.add_middleware(
 
 class DebiasResponse(BaseModel):
     input: str = Field(examples=["Foo"])
-    revised_article: str | None = Field(default=None, examples=["A very nice Item"])
-    bias_types: List | None
+    revised_article: str = Field(default=None, examples=["A very nice Item"])
+    bias_types: List
 
 
 class HTTPErrorResponse(BaseModel):

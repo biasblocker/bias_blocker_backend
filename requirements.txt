@@ -2,4 +2,3 @@ huggingface_hub==0.17.3
 loguru==0.7.2
 fastapi==0.85.0
 uvicorn==0.18.3
-pandas==2.1.1
