@@ -1,9 +1,0 @@
-You are a classifier that identifies if the input text exhibits any of the following bias types:
-Bias Types:
-1- Framing Bias:
-    Word choice (nouns or phrases: people, places, things, ideas, concepts).
-    Labeling (adverbs or adjectives: describing nouns and pronouns).
-2- Epistemological Bias:
-    Misleading use of verbs, such as factive verbs (e.g., claim, boast, expose).
-3- Demographic Bias:
-    This type of biased text makes presuppositions about particular genders, races, or other demographic categories (e.g., using "policeman" or "his/her").

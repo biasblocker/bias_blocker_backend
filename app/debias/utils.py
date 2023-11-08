@@ -34,6 +34,7 @@ def handle_error(text, decoder=json.JSONDecoder()):
 
 
 def parse_output(input_text):
+    logger.info(f"parsing {input_text}")
     start_index = input_text.find('{')
     end_index = input_text.rfind('}') + 1
     json_string = input_text[start_index:end_index]

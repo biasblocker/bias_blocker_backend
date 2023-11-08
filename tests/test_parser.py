@@ -1,6 +1,7 @@
 import unittest
 import json
 
+
 class TestParser(unittest.TestCase):
 
     def test_parser_func(self):
@@ -45,6 +46,42 @@ class TestParser(unittest.TestCase):
     ]
     }""")
         self.assertEqual(generated_output, desired_output)
+
+        test_text = """{
+"input": "Orange Is the New Black" star Yael Stone is renouncing her U.S. green card to return to her native Australia in order to fight climate change.
+"biased": yes
+"revised_article": "Yael Stone, known for her role in 'Orange Is the New Black,' has announced her decision to renounce her U.S. green card and return to her native Australia in order to combat climate change."
+"bias_topic": ["migration"]
+"bias_types":
+[
+{
+"bias_type": "framing bias - word choice",
+"span": "renouncing her U.S. green card",
+"explanation": "The use of the word 'renouncing' implies a negative connotation and could be seen as taking a political stance on the issue of immigration."
+},
+{
+"bias_type": "framing bias - labeling",
+"span": "in order to fight climate change",
+"explanation": "The phrase 'in order to fight climate change' could be seen as implying that the author supports
+"""
+
+    desired_output = json.loads("""{
+       "input": "Orange Is the New Black" star Yael Stone is renouncing her U.S. green card to return to her native Australia in order to fight climate change.",
+"biased": yes,
+"revised_article": "Yael Stone, known for her role in 'Orange Is the New Black,' has announced her decision to renounce her U.S. green card and return to her native Australia in order to combat climate change.",
+"bias_topic": ["migration"],
+"bias_types":
+[
+{
+"bias_type": "framing bias - word choice",
+"span": "renouncing her U.S. green card",
+"explanation": "The use of the word 'renouncing' implies a negative connotation and could be seen as taking a political stance on the issue of immigration."
+},
+{
+"bias_type": "framing bias - labeling",
+"span": "in order to fight climate change",
+"explanation": "The phrase 'in order to fight climate change' could be seen as implying that the author supports}}
+       """)
 
 
 if __name__ == '__main__':
