@@ -3,3 +3,6 @@ loguru==0.7.2
 fastapi==0.85.0
 uvicorn==0.18.3
 openai==1.1.1
+python-dotenv
+python-multipart
+diskcache

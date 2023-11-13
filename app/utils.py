@@ -1,8 +1,14 @@
+import os
+from dotenv import load_dotenv
 import json
 from loguru import logger
 
 logger.add(f"logs/{__name__}.log", rotation="500 MB")
 
+load_dotenv()
+
+with open(os.getenv('PROMPT_FILE'), 'r') as f:
+    TASK = f.read()
 
 def handle_error(text, decoder=json.JSONDecoder()):
     fixed_data = {}

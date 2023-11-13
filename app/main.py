@@ -1,18 +1,23 @@
 import os
-
+from diskcache import Cache
 from pydantic import BaseModel, Field
 from typing import List
-from fastapi import FastAPI, HTTPException, Request, status
+from fastapi import FastAPI, HTTPException, Request, status, Form
 from fastapi.middleware.cors import CORSMiddleware
-from app.hf_llama2 import inference, init_client
+# from app.hf_llama2 import inference, init_client
+from app.models import MODELS
 from loguru import logger
 from dotenv import load_dotenv
 
 load_dotenv()
 
+cache = Cache("tmp")
+
 logger.add(f"logs/{__name__}.log", rotation="500 MB")
 
-CLIENT = init_client(model_name=os.getenv("MODEL_NAME"), token=os.getenv("MODEL_TOKEN"))
+# CLIENT = init_client(model_name=os.getenv("MODEL_NAME"), token=os.getenv("MODEL_TOKEN"))
+CLIENT = MODELS[os.getenv("ACTIVE")]()
+
 MAX_NEW_TOKENS = os.getenv("MAX_NEW_TOKENS")
 
 app = FastAPI()
@@ -34,25 +39,20 @@ class DebiasResponse(BaseModel):
     bias_topic: List = Field(default=[])
     bias_types: List = Field(default=[])
 
-
-class Body(BaseModel):
-    article: str
-
-
+@cache.memoize()
 @app.post(
     "/debias",
     response_model=DebiasResponse
 )
-def debias(body: Body):
-    article = body.article
+def debias(article: str=Form(...)):
     words = article.split()
     if len(words) <= 1:
-        return dict(input=body.article, biased="no", bias_topic=[], bias_types=[], revised_article=None)
-    output = inference(body.article, client=CLIENT, max_new_tokens=MAX_NEW_TOKENS)
-
+        return dict(input=article, biased="no", bias_topic=[], bias_types=[], revised_article=None)
+    output = CLIENT.inference(article)
+    print(output)
     if not output:
-        return dict(input=body.article, biased="no", bias_topic=[], bias_types=[], revised_article=None)
+        return dict(input=article, biased="no", bias_topic=[], bias_types=[], revised_article=None)
 
     if output["biased"] == "no":
-        return dict(input=body.article, biased=output["biased"], bias_topic=[], bias_types=[], revised_article=None)
+        return dict(input=article, biased=output["biased"], bias_topic=[], bias_types=[], revised_article=None)
     return output

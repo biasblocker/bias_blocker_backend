@@ -27,9 +27,19 @@ Examples:
 
 4. Demographic Bias - Stereotyping roles/attributes:
 This type of biased text has presuppositions (prejudices or preconceptions) about particular genders, ethnicities, nationalities, professions, age groups, health status, religion, or other demographic categories. For instance, assuming that all programmers are male or nurses are female. This bias involves presuppositions about particular genders, races, or other demographic categories.
+Examples:
+- biased: For millions of years, mankind lived in caves.
+  unbiased: For millions of years, human beings lived in caves.
+- biased: These guys over there, they saw the incident.
+  unbiased: These people over there, they saw the incident.
 
 5. Demographic Bias - Use of both feminine and masculine reference words:
 Look for gender-specific nouns when making generic references.
+Examples:
+- biased: It all came down to one person’s vote. He or she would decide the future of the county.
+  unbiased: It all came down to one person’s vote. That person would decide the future of the county.
+- biased: Each professor should send one of his assistants to the conference.
+  unbiased: Each professor should send one assistant to the conference.
 
 Your revisions to the news article should meet the following criteria:
 - Do not change factual information.
