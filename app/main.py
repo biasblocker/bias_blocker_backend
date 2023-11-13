@@ -49,10 +49,12 @@ def debias(article: str=Form(...)):
     if len(words) <= 1:
         return dict(input=article, biased="no", bias_topic=[], bias_types=[], revised_article=None)
     output = CLIENT.inference(article)
-    print(output)
     if not output:
         return dict(input=article, biased="no", bias_topic=[], bias_types=[], revised_article=None)
 
-    if output["biased"] == "no":
+    if "biased" in output and output["biased"] == "no":
         return dict(input=article, biased=output["biased"], bias_topic=[], bias_types=[], revised_article=None)
+    elif "biased" not in output:
+        return dict(input=article, biased="no", bias_topic=[], bias_types=[], revised_article=None)
+
     return output
