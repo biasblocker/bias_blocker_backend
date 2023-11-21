@@ -85,7 +85,6 @@ null شيء في "revised_article" و"bias topic" في JSON:
 
 ```json
 {
-"input": أضف/أضيفي المدخلات هنا
 "biased": % اذا كان النص متحيزاً، اختار/ي نعم، واذا كان غير متحيز، اختار/ي no
 "revised_article": % أضف/ي النص المراجع هنا
 "bias_topic": [% مجموعة من الموضوعات المتحيزة if applicable)],

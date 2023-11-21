@@ -35,26 +35,49 @@ app.add_middleware(
 class DebiasResponse(BaseModel):
     input: str = Field(examples=["Foo"])
     biased: str = Field(default="no")
+    model_raw_output: str
     revised_article: str = Field(default=None, examples=["A very nice Item"])
     bias_topic: List = Field(default=[])
     bias_types: List = Field(default=[])
+
 
 @cache.memoize()
 @app.post(
     "/debias",
     response_model=DebiasResponse
 )
-def debias(article: str=Form(...)):
+def debias(article: str = Form(...)):
+    response = {
+        "input": article,
+        "biased": "undecided",
+        "bias_types": [],
+        "bias_topic": [],
+        "revised_article": None,
+        "model_raw_output": None,
+    }
+
     words = article.split()
+
     if len(words) <= 1:
-        return dict(input=article, biased="no", bias_topic=[], bias_types=[], revised_article=None)
-    output = CLIENT.inference(article)
-    if not output:
-        return dict(input=article, biased="no", bias_topic=[], bias_types=[], revised_article=None)
+        pass
 
-    if "biased" in output and output["biased"] == "no":
-        return dict(input=article, biased=output["biased"], bias_topic=[], bias_types=[], revised_article=None)
-    elif "biased" not in output:
-        return dict(input=article, biased="no", bias_topic=[], bias_types=[], revised_article=None)
+    output, raw_output = CLIENT.inference(article)
 
-    return output
+    logger.info(f"Output: {output}")
+
+    if not output or "biased" not in output:
+        response["biased"] = "no"
+    elif output["biased"] == "yes":
+        response["biased"] = output.get('biased', response['biased'])
+        response["revised_article"] = output.get('revised_article', response['revised_article'])
+        response["bias_types"] = output.get('bias_types', response['bias_types'])
+        if not response["bias_types"]:
+            response["bias_types"] = []
+
+        response["bias_topic"] = output.get('bias_topic', response['bias_topic'])
+        if not response["bias_topic"]:
+            response["bias_topic"] = []
+
+    response["model_raw_output"] = output.get('model_raw_output', raw_output)
+
+    return response
