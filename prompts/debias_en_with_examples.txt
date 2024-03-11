@@ -51,7 +51,7 @@ Additionally, you should label the biased spans and classify them with the appro
 Also, you need to choose the bias topics seen within the biased text. The bias topics are gender, ethnicity/race, age, migration, religion, political.
 Please provide a thoughtful and logical explanation for your changes.
 
-Provide your response as a validated JSON object with the following schema. If no bias is present, confirm that by setting "biased" to "no" and "bias_types", "revised_article" to null and "bias_topic" to "null" in JSON.:
+Provide your response as a validated JSON object with the following schema. If no bias is present, confirm that by setting "biased" to "no" and "bias_types", "revised_article" to null and "bias_topic" to null in JSON.:
 ```json
 {
     "biased": % if the article is biased, say yes, if the article is unbiased, say no.
