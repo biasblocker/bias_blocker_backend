@@ -1,19 +1,21 @@
 import os
-from typing import List, Any, Dict
+import json
+from enum import Enum
+from typing import List
 
-import langchain
 from dotenv import load_dotenv
-from langchain.callbacks.base import BaseCallbackHandler
 from langchain.chat_models import ChatOpenAI
 from langchain.output_parsers import PydanticOutputParser
 from langchain.schema import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_core.runnables import RunnablePassthrough
+from sentencex import segment
 
 load_dotenv()
 
-langchain.verbose = True
+
+# langchain.verbose = True
 
 
 def read_task_prompt(fname):
@@ -24,46 +26,57 @@ def read_task_prompt(fname):
 # prompt_task_2 = ChatPromptTemplate.from_template(read_task_prompt(fname='chain_prompts/prompts/task_2.txt'))
 
 
-class BiasClassification(BaseModel):
-    biased: bool = Field(description='if text is biased, it returns True. Otherwise, it returns False')
-
-
 class BiasType(BaseModel):
     bias_type: str = Field(description='the detected bias type')
     span: str = Field(description='text span containing the bias')
     explanation: str = Field(description='explanation')
 
 
+class BiasTopic(Enum):
+    GENDER = 'gender'
+    ETHINICITY_RACE = 'ethnicity/race'
+    AGE = 'age'
+    MIGRATION = 'migration'
+    RELIGION = 'religion'
+    POLITICAL = 'political'
+
+
 class BiasTypes(BaseModel):
-    bias_types: List[BiasType]
+    biased: bool = Field(description='if text is biased, return True. Otherwise, it returns False')
+    bias_topics: List[BiasTopic] = Field(
+        description='bias topics that are gender, ethnicity/race, age, migration, religion, political')
+    bias_types: List[BiasType] = Field(description='List of bias types that is seen in the text')
 
 
 class Revision(BaseModel):
     revised_article: str = Field(description="place here the revised article")
 
 
-parser = PydanticOutputParser(pydantic_object=BiasTypes)
-parser.get_format_instructions()
+bias_parser = PydanticOutputParser(pydantic_object=BiasTypes)
+bias_parser.get_format_instructions()
 
+bias_types = read_task_prompt(fname='prompts/chain_prompts/bias_types.txt')
 prompt_task_1 = ChatPromptTemplate.from_template(read_task_prompt(fname='prompts/chain_prompts/task_1.txt'),
                                                  partial_variables={
-                                                     "format_instructions": parser.get_format_instructions()})
+                                                     "format_instructions": bias_parser.get_format_instructions()})
 
-model = ChatOpenAI(temperature=0,
+
+revision_parser = PydanticOutputParser(pydantic_object=Revision)
+revision_parser.get_format_instructions()
+
+prompt_task_2 = ChatPromptTemplate.from_template(read_task_prompt(fname='prompts/chain_prompts/task_2.txt'),
+                                                 partial_variables={
+                                                     "format_instructions": revision_parser.get_format_instructions()})
+
+model = ChatOpenAI(temperature=0.7,
                    openai_api_key=os.getenv('OPENAI_API_KEY'),
                    model_name=os.getenv('CHATGPT_MODEL'),
                    verbose=True)
 
 # model_parser = model | StrOutputParser()
 
-article_input = {"article": RunnablePassthrough()}
-
 chain_task_1 = prompt_task_1 | model | StrOutputParser()
-
-# chain_task_2 = {"article": article_input, "language": chain_task_1} | prompt_task_2 | model | StrOutputParser()
-#
-# chain_task_3 = {"article": article_input, "language": chain_task_1,
-#                 "entities": chain_task_2} | prompt_task_3 | model | StrOutputParser()
+chain_task_2 = prompt_task_2 | model | StrOutputParser()
 
 article = '''
 The letter, is a follow-up to an initial letter Johnson sent after leading 64 House Republicans to Eagle Pass, Texas, in early January. In that initial letter, Johnson cited reporting from Breitbart News that the DHS took steps to hide the severity of the crisis from the Congressional delegation visit — commonly referred to as a CODEL in Washington. Johnson also raised questions about the DHS granting access to CBS cameras for a favorable piece on Mayorkas’s department while denying the Congressional delegation from taking photographs.
@@ -73,16 +86,30 @@ Johnson and the two chairmen told Mayorkas they wanted answers within two weeks 
 Concerns about the collapse of the southern border have increased in Washington and throughout the nation, with the Congressmen’s letter stating the problem “is currently the number one issue that concerns the American people, whether they live in a border state or not.” They mention the killings of Kayla Hamilton and Laken Riley, both allegedly by foreign nationals illegally in the country who were released due to Biden-endorsed border and immigration policies.
 '''
 
+sentences = list(segment("en", article))
+for sentence in sentences:
+    sentence = sentence.rstrip()
 
-class CustomHandler(BaseCallbackHandler):
-    def on_llm_start(
-            self, serialized: Dict[str, Any], prompts: List[str], **kwargs: Any
-    ) -> Any:
-        formatted_prompts = "\n".join(prompts)
-        print(f"Prompt:\n{formatted_prompts}")
+    if len(sentence) == 0:
+        print("it is not a sentence, a whitespace.")
+        continue
 
+    output = chain_task_1.invoke({"bias_types": bias_types, "article": sentence})
 
-output = chain_task_1.invoke({"article": article})
+    output = output.replace('```json', '').replace('`','')
 
-print("result is here")
-print(output)
+    output = json.loads(output)
+    output["input"] = sentence
+
+    if bool(output["biased"]):
+        detected_bias_spans = ''
+        for detected_bias in output['bias_types']:
+            bias_span = detected_bias['span']
+            detected_bias_spans += f'{bias_span}\n'
+            revised_from_model = chain_task_2.invoke({"detected_bias_spans": detected_bias_spans, "article": sentence})
+            revised_from_model = revised_from_model.replace('```json', '').replace('`', '')
+            revised_from_model = json.loads(revised_from_model)
+        output["revised_article"] = revised_from_model["revised_article"]
+
+    print("===output===")
+    print(output)
