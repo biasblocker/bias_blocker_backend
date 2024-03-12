@@ -6,3 +6,4 @@ openai==1.1.1
 python-dotenv
 python-multipart
 diskcache
+langchain==0.1.11
