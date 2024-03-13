@@ -31,5 +31,5 @@ I will give you the article and the detected bias spans as the input.
 {detected_bias_spans}
 
 ==Format instructions==
-Provide your response as a validated JSON object with the following schema.
+Return your response as a validated JSON object with the following schema.
 {format_instructions}

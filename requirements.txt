@@ -5,6 +5,5 @@ uvicorn==0.18.3
 openai==1.1.1
 python-dotenv
 python-multipart
-diskcache
 langchain==0.1.11
 sentencex==0.6.1

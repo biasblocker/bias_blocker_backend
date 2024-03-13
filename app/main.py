@@ -1,17 +1,15 @@
 import os
-from diskcache import Cache
-from pydantic import BaseModel, Field
 from typing import List
-from fastapi import FastAPI, HTTPException, Request, status, Form
-from fastapi.middleware.cors import CORSMiddleware
-# from app.hf_llama2 import inference, init_client
-from app.models import MODELS
-from loguru import logger
+
 from dotenv import load_dotenv
+from fastapi import FastAPI, Form
+from fastapi.middleware.cors import CORSMiddleware
+from loguru import logger
+from pydantic import BaseModel, Field
+
+from app.models import MODELS
 
 load_dotenv()
-
-cache = Cache("tmp")
 
 logger.add(f"logs/{__name__}.log", rotation="500 MB")
 
@@ -41,7 +39,6 @@ class DebiasResponse(BaseModel):
     bias_types: List = Field(default=[])
 
 
-@cache.memoize()
 @app.post(
     "/debias",
     response_model=DebiasResponse
