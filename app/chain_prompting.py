@@ -84,7 +84,7 @@ class ChatGPTChain:
             bias_topics.extend(result['bias_topics'])
             bias_types.extend(result['bias_types'])
 
-            full_article = full_article.replace(result['sentence'],result["revised_article"])
+            full_article = full_article.replace(result['sentence'], result["revised_article"])
 
         # comment out if you want to assign the most common
         # aggregated_result['bias_topics'] =  max(set(bias_topics), key=bias_topics.count)
@@ -132,8 +132,7 @@ class ChatGPTChain:
                 output["revised_article"] = revised_from_model["revised_article"]
                 output["sentence"] = sentence
                 results.append(output)
-
-        if len(results) >= 1:
+        if len(results) > 0:
             output = self.aggregate_results(full_article, results)
         else:
             output = {
@@ -154,4 +153,3 @@ if __name__ == '__main__':
     output, _ = client.inference(prompt)
 
     print(output)
-

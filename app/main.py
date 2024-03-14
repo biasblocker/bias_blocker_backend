@@ -1,5 +1,5 @@
 import os
-from typing import List
+from typing import List, Optional
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Form
@@ -33,7 +33,7 @@ app.add_middleware(
 class DebiasResponse(BaseModel):
     input: str = Field(examples=["Foo"])
     biased: str = Field(default="no")
-    model_raw_output: str
+    model_raw_output: Optional[str]
     revised_article: str = Field(default=None, examples=["A very nice Item"])
     bias_topic: List = Field(default=[])
     bias_types: List = Field(default=[])
@@ -53,28 +53,11 @@ def debias(article: str = Form(...)):
         "model_raw_output": None,
     }
 
-    words = article.split()
-
-    if len(words) <= 1:
-        pass
-
     output, raw_output = CLIENT.inference(article)
 
-    logger.info(f"Output: {output}")
-
-    if not output or "biased" not in output:
-        response["biased"] = "no"
-    elif output["biased"] == "yes":
-        response["biased"] = output.get('biased', response['biased'])
-        response["revised_article"] = output.get('revised_article', response['revised_article'])
-        response["bias_types"] = output.get('bias_types', response['bias_types'])
-        if not response["bias_types"]:
-            response["bias_types"] = []
-
-        response["bias_topic"] = output.get('bias_topic', response['bias_topic'])
-        if not response["bias_topic"]:
-            response["bias_topic"] = []
-
-    response["model_raw_output"] = output.get('model_raw_output', raw_output)
+    if output:
+        output["input"] = article
+        output["model_raw_output"] = output.get('model_raw_output', raw_output)
+        return output
 
     return response
