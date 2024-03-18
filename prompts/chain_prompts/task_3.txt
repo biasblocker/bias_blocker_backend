@@ -1,0 +1,6 @@
+Fix the JSON parsing error in the input and return the validated JSON.
+
+==input==
+{json_input}
+
+==validated_json==

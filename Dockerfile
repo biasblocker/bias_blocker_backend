@@ -1,6 +1,8 @@
 FROM python:3.8-alpine
 
 RUN apk update && apk add bash
+RUN apk add --no-cache --update-cache gfortran build-base wget libpng-dev openblas-dev
+RUN apk add py3-scipy
 
 WORKDIR /app
 
