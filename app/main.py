@@ -35,7 +35,7 @@ class DebiasResponse(BaseModel):
     biased: str = Field(default="no")
     model_raw_output: Optional[str]
     revised_article: str = Field(default=None, examples=["A very nice Item"])
-    bias_topic: List = Field(default=[])
+    bias_topics: List = Field(default=[])
     bias_types: List = Field(default=[])
 
 
@@ -48,7 +48,7 @@ def debias(article: str = Form(...)):
         "input": article,
         "biased": "undecided",
         "bias_types": [],
-        "bias_topic": [],
+        "bias_topics": [],
         "revised_article": None,
         "model_raw_output": None,
     }

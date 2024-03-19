@@ -1,5 +1,6 @@
 import os
 from enum import Enum
+from pathlib import Path
 from typing import List, Optional
 
 import langchain_core
@@ -12,14 +13,13 @@ from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.pydantic_v1 import BaseModel, Field
 from sentencex import segment
+from app.utils import read_task_prompt
+
 
 load_dotenv()
 set_llm_cache(SQLiteCache(database_path=".langchain.db"))
 
-
-def read_task_prompt(fname):
-    with open(fname, 'r') as f:
-        return f.read()
+PROMPT_FOLDER = Path(os.getenv("CHAIN_PROMPT_FILE"))
 
 
 class BiasType(BaseModel):
@@ -52,24 +52,24 @@ class ChatGPTChain:
     def __init__(self):
         bias_parser = PydanticOutputParser(pydantic_object=BiasTypes)
         bias_parser.get_format_instructions()
-        prompt_task_1 = ChatPromptTemplate.from_template(read_task_prompt(fname='prompts/chain_prompts/task_1.txt'),
+        prompt_task_1 = ChatPromptTemplate.from_template(read_task_prompt(fname=PROMPT_FOLDER / 'task_1.txt'),
                                                          partial_variables={
                                                              "format_instructions": bias_parser.get_format_instructions()})
 
         revision_parser = PydanticOutputParser(pydantic_object=Revision)
         revision_parser.get_format_instructions()
 
-        prompt_task_2 = ChatPromptTemplate.from_template(read_task_prompt(fname='prompts/chain_prompts/task_2.txt'),
+        prompt_task_2 = ChatPromptTemplate.from_template(read_task_prompt(fname=PROMPT_FOLDER / 'task_2.txt'),
                                                          partial_variables={
                                                              "format_instructions": revision_parser.get_format_instructions()})
 
-        prompt_task_3 = ChatPromptTemplate.from_template(read_task_prompt(fname='prompts/chain_prompts/task_3.txt'))
+        prompt_task_3 = ChatPromptTemplate.from_template(read_task_prompt(fname=PROMPT_FOLDER / 'task_3.txt'))
 
         model = ChatOpenAI(temperature=0.7,
                            openai_api_key=os.getenv('OPENAI_API_KEY'),
                            model_name=os.getenv('CHATGPT_MODEL'),
                            verbose=True)
-        self.bias_types = read_task_prompt(fname='prompts/chain_prompts/bias_types.txt')
+        self.bias_types = read_task_prompt(fname=PROMPT_FOLDER / 'bias_types.txt')
         self.temperature = os.environ["OPENAI_TEMPERATURE"]
         self.chain_task_1 = prompt_task_1 | model | bias_parser
         self.chain_task_2 = prompt_task_2 | model | revision_parser
@@ -138,7 +138,7 @@ class ChatGPTChain:
             output = {
                 "biased": "biased",
                 "bias_types": [],
-                "bias_topic": [],
+                "bias_topics": [],
                 "revised_article": None,
                 "model_raw_output": None,
             }

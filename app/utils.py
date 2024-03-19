@@ -1,14 +1,11 @@
-import os
-from dotenv import load_dotenv
 import json
+
+from dotenv import load_dotenv
 from loguru import logger
 
 logger.add(f"logs/{__name__}.log", rotation="500 MB")
 
 load_dotenv()
-
-with open(os.getenv('PROMPT_FILE'), 'r') as f:
-    TASK = f.read()
 
 
 def handle_error(text):
@@ -59,3 +56,8 @@ def parse_output(input_text):
         logger.info("Fixing it...")
         fixed_data = handle_error(json_string)
         return fixed_data
+
+
+def read_task_prompt(fname):
+    with open(fname, 'r') as f:
+        return f.read()
