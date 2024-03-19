@@ -1,11 +1,13 @@
 import os
-from app.utils import parse_output, TASK
+from app.utils import parse_output
 from openai import OpenAI
 from dotenv import load_dotenv
 from loguru import logger
+from app.utils import read_task_prompt
 
 load_dotenv()
 
+TASK = read_task_prompt(os.getenv("PROMPT_FILE"))
 
 class ChatGPTAPI:
     def __init__(self):

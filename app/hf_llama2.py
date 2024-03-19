@@ -1,7 +1,7 @@
 import os
 from huggingface_hub import InferenceClient, utils
 import huggingface_hub
-from app.utils import parse_output, TASK
+from app.utils import parse_output, read_task_prompt
 from loguru import logger
 from dotenv import load_dotenv
 
@@ -13,6 +13,7 @@ PROMPT = """<s>[INST] <<SYS>>
 {sentence} [/INST]
 """
 
+TASK = read_task_prompt(os.getenv("PROMPT_FILE"))
 
 class Llama2API:
     def __init__(self):
