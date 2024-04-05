@@ -3,6 +3,7 @@ from enum import Enum
 from pathlib import Path
 from typing import List, Optional
 
+import diff_match_patch as dmp_module
 import langchain_core
 from dotenv import load_dotenv
 from langchain.cache import SQLiteCache
@@ -13,19 +14,14 @@ from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.pydantic_v1 import BaseModel, Field
 from sentencex import segment
-from app.utils import read_task_prompt
 
+from app.utils import read_task_prompt
 
 load_dotenv()
 set_llm_cache(SQLiteCache(database_path=".langchain.db"))
-
+LANGUAGE = os.getenv("PROMPT_LANGUAGE")
 PROMPT_FOLDER = Path(os.getenv("CHAIN_PROMPT_FILE"))
-
-
-class BiasType(BaseModel):
-    bias_type: str = Field(description='the detected bias type')
-    span: str = Field(description='text span containing the bias')
-    explanation: str = Field(description='explanation')
+DMP = dmp_module.diff_match_patch()
 
 
 class BiasTopic(Enum):
@@ -37,6 +33,20 @@ class BiasTopic(Enum):
     POLITICAL = 'political'
 
 
+class BiasTypeCategories(Enum):
+    FRAMING_BIAS_WORD_CHOICE = 'Framing Bias - Word Choice'
+    FRAMING_BIAS_LABELING = 'Framing Bias - Labeling'
+    EPISTEMOLOGICAL_BIAS_MISLEADING_USE_OF_VERBS = 'Epistemological Bias - Misleading use of verbs'
+    DEMOGRAPHIC_BIAS_STEREOTYPING_ROLES_OR_ATTRIBUTES = 'Demographic Bias - Stereotyping roles/attributes'
+    DEMOGRAPHIC_BIAS_USE_OF_BOTH_FEMININE_AND_MASCULINE_REFERENCE_WORDS = 'Demographic Bias - Use of both feminine and masculine reference words.'
+
+
+class BiasType(BaseModel):
+    bias_type: BiasTypeCategories = Field(description='the detected bias type')
+    span: str = Field(description='text span containing the bias')
+    explanation: str = Field(description='explanation')
+
+
 class BiasTypes(BaseModel):
     biased: bool = Field(description='if text is biased, return True. Otherwise, it returns False')
     bias_topics: Optional[List[BiasTopic]] = Field(
@@ -45,31 +55,34 @@ class BiasTypes(BaseModel):
 
 
 class Revision(BaseModel):
-    revised_article: str = Field(description="place here the revised article")
+    revised_text: str = Field(description="place here the revised article")
 
 
 class ChatGPTChain:
     def __init__(self):
         bias_parser = PydanticOutputParser(pydantic_object=BiasTypes)
         bias_parser.get_format_instructions()
-        prompt_task_1 = ChatPromptTemplate.from_template(read_task_prompt(fname=PROMPT_FOLDER / 'task_1.txt'),
-                                                         partial_variables={
-                                                             "format_instructions": bias_parser.get_format_instructions()})
+        prompt_task_1 = ChatPromptTemplate.from_template(
+            read_task_prompt(fname=PROMPT_FOLDER / LANGUAGE / 'task_1.txt'),
+            partial_variables={
+                "format_instructions": bias_parser.get_format_instructions()})
 
         revision_parser = PydanticOutputParser(pydantic_object=Revision)
         revision_parser.get_format_instructions()
 
-        prompt_task_2 = ChatPromptTemplate.from_template(read_task_prompt(fname=PROMPT_FOLDER / 'task_2.txt'),
-                                                         partial_variables={
-                                                             "format_instructions": revision_parser.get_format_instructions()})
+        prompt_task_2 = ChatPromptTemplate.from_template(
+            read_task_prompt(fname=PROMPT_FOLDER / LANGUAGE / 'task_2.txt'),
+            partial_variables={
+                "format_instructions": revision_parser.get_format_instructions()})
 
-        prompt_task_3 = ChatPromptTemplate.from_template(read_task_prompt(fname=PROMPT_FOLDER / 'task_3.txt'))
+        prompt_task_3 = ChatPromptTemplate.from_template(
+            read_task_prompt(fname=PROMPT_FOLDER / LANGUAGE / 'task_3.txt'))
 
         model = ChatOpenAI(temperature=0.7,
                            openai_api_key=os.getenv('OPENAI_API_KEY'),
                            model_name=os.getenv('CHATGPT_MODEL'),
                            verbose=True)
-        self.bias_types = read_task_prompt(fname=PROMPT_FOLDER / 'bias_types.txt')
+        self.bias_types = read_task_prompt(fname=PROMPT_FOLDER / LANGUAGE / 'bias_types.txt')
         self.temperature = os.environ["OPENAI_TEMPERATURE"]
         self.chain_task_1 = prompt_task_1 | model | bias_parser
         self.chain_task_2 = prompt_task_2 | model | revision_parser
@@ -80,24 +93,33 @@ class ChatGPTChain:
         aggregated_result["biased"] = True
         bias_topics = list()
         bias_types = list()
+        revisions = list()
+        changed_article = full_article
         for result in results:
             bias_topics.extend(result['bias_topics'])
             bias_types.extend(result['bias_types'])
+            changed_article = changed_article.replace(result['sentence'], result["revised_text"])
 
-            full_article = full_article.replace(result['sentence'], result["revised_article"])
+            diff = DMP.diff_main(result['sentence'], result['revised_text'])
+            DMP.diff_cleanupSemantic(diff)
+            revisions.append({
+                'sentence': result['sentence'],
+                'revised_text': result['revised_text'],
+                'changes': diff
+            })
 
         # comment out if you want to assign the most common
         # aggregated_result['bias_topics'] =  max(set(bias_topics), key=bias_topics.count)
 
         aggregated_result['bias_topics'] = list(set(bias_topics))
         aggregated_result['bias_types'] = bias_types
-        aggregated_result['revised_article'] = full_article
+        aggregated_result['revised_article'] = changed_article
+        aggregated_result['revisions'] = revisions
 
         return aggregated_result
-
     def inference(self, query):
         full_article = query
-        sentences = list(segment("en", query))
+        sentences = list(segment(LANGUAGE[:1], query))
 
         results = []
         for sentence in sentences:
@@ -105,7 +127,6 @@ class ChatGPTChain:
                 # potentially it will create hallucinations
                 continue
             sentence = sentence.rstrip()
-
             if len(sentence) == 0:
                 print("it is not a sentence, a whitespace.")
                 continue
@@ -129,9 +150,12 @@ class ChatGPTChain:
                         revised_from_model = revised_from_model.dict()
                     except langchain_core.exceptions.OutputParserException as e:
                         revised_from_model = self.chain_task_3.invoke({"json_input": revised_from_model})
-                output["revised_article"] = revised_from_model["revised_article"]
+
+                output["revised_text"] = revised_from_model["revised_text"]
                 output["sentence"] = sentence
+
                 results.append(output)
+
         if len(results) > 0:
             output = self.aggregate_results(full_article, results)
         else:
@@ -141,6 +165,7 @@ class ChatGPTChain:
                 "bias_topics": [],
                 "revised_article": None,
                 "model_raw_output": None,
+                "revisions": []
             }
 
         return output, None

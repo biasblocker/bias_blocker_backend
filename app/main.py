@@ -37,6 +37,7 @@ class DebiasResponse(BaseModel):
     revised_article: str = Field(default=None, examples=["A very nice Item"])
     bias_topics: List = Field(default=[])
     bias_types: List = Field(default=[])
+    revisions: List = Field(default=[])
 
 
 @app.post(
@@ -44,20 +45,10 @@ class DebiasResponse(BaseModel):
     response_model=DebiasResponse
 )
 def debias(article: str = Form(...)):
-    response = {
-        "input": article,
-        "biased": "undecided",
-        "bias_types": [],
-        "bias_topics": [],
-        "revised_article": None,
-        "model_raw_output": None,
-    }
-
     output, raw_output = CLIENT.inference(article)
-
     if output:
         output["input"] = article
         output["model_raw_output"] = output.get('model_raw_output', raw_output)
         return output
 
-    return response
+    return output

@@ -1,0 +1,4 @@
+streamlit
+loguru==0.7.2
+seaborn
+python-dotenv

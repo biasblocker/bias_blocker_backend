@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  bias_blocker:
+    image: bias_blocker:latest
+    ports:
+      - "80:8080"
+    volumes:
+      - "../prompts:/app/prompts"
+    env_file:
+      - .env
+  streamlit:
+    image: streamlit
+    ports:
+      - "8502:8501"
+    env_file:
+      - .env
+
