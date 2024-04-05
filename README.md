@@ -46,7 +46,7 @@ You can check the API documentation {ENDPOINT}/docs.
 ## Demo of the API
 
 If you don't want to use FastAPI docs for experimenting, you can run the demo folder.
-Enter the [demo](/demo) folder, run the docker
+Enter the [demo](/demo) folder, to read the instructions on how you can run the demo UI.
 
 **Note:** Chain-prompt is developed by [@isspek](https://github.com/isspek) after the fellowship. This method is based
 on sentence-level bias detection, it is optimized and produces less parsing errors. Currently it only supports ChatGPT.
