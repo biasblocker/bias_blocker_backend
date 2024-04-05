@@ -6,7 +6,9 @@ RUN apk add py3-scipy
 
 WORKDIR /app
 
-COPY . .
+COPY app /app/app
+COPY prompts /app
+COPY requirements.txt /app
 
 RUN pip install -r requirements.txt
 

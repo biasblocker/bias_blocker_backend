@@ -7,3 +7,4 @@ python-dotenv
 python-multipart
 langchain==0.1.11
 sentencex==0.6.1
+diff-match-patch
