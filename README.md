@@ -39,6 +39,7 @@ MAX_NEW_TOKENS=1000
 OPENAI_API_KEY=OPEN_KEY_API
 OPENAI_TEMPERATURE=0.7
 CHATGPT_MODEL=gpt-3.5-turbo-1106
+PROMPT_LANGUAGE=english % choose english/arabic which are currently supported languages
 ```
 
 You can check the API documentation {ENDPOINT}/docs.

@@ -19,7 +19,7 @@ from app.utils import read_task_prompt
 
 load_dotenv()
 set_llm_cache(SQLiteCache(database_path=".langchain.db"))
-
+LANGUAGE = os.getenv("PROMPT_LANGUAGE")
 PROMPT_FOLDER = Path(os.getenv("CHAIN_PROMPT_FILE"))
 DMP = dmp_module.diff_match_patch()
 
@@ -62,24 +62,27 @@ class ChatGPTChain:
     def __init__(self):
         bias_parser = PydanticOutputParser(pydantic_object=BiasTypes)
         bias_parser.get_format_instructions()
-        prompt_task_1 = ChatPromptTemplate.from_template(read_task_prompt(fname=PROMPT_FOLDER / 'task_1.txt'),
-                                                         partial_variables={
-                                                             "format_instructions": bias_parser.get_format_instructions()})
+        prompt_task_1 = ChatPromptTemplate.from_template(
+            read_task_prompt(fname=PROMPT_FOLDER / LANGUAGE / 'task_1.txt'),
+            partial_variables={
+                "format_instructions": bias_parser.get_format_instructions()})
 
         revision_parser = PydanticOutputParser(pydantic_object=Revision)
         revision_parser.get_format_instructions()
 
-        prompt_task_2 = ChatPromptTemplate.from_template(read_task_prompt(fname=PROMPT_FOLDER / 'task_2.txt'),
-                                                         partial_variables={
-                                                             "format_instructions": revision_parser.get_format_instructions()})
+        prompt_task_2 = ChatPromptTemplate.from_template(
+            read_task_prompt(fname=PROMPT_FOLDER / LANGUAGE / 'task_2.txt'),
+            partial_variables={
+                "format_instructions": revision_parser.get_format_instructions()})
 
-        prompt_task_3 = ChatPromptTemplate.from_template(read_task_prompt(fname=PROMPT_FOLDER / 'task_3.txt'))
+        prompt_task_3 = ChatPromptTemplate.from_template(
+            read_task_prompt(fname=PROMPT_FOLDER / LANGUAGE / 'task_3.txt'))
 
         model = ChatOpenAI(temperature=0.7,
                            openai_api_key=os.getenv('OPENAI_API_KEY'),
                            model_name=os.getenv('CHATGPT_MODEL'),
                            verbose=True)
-        self.bias_types = read_task_prompt(fname=PROMPT_FOLDER / 'bias_types.txt')
+        self.bias_types = read_task_prompt(fname=PROMPT_FOLDER / LANGUAGE / 'bias_types.txt')
         self.temperature = os.environ["OPENAI_TEMPERATURE"]
         self.chain_task_1 = prompt_task_1 | model | bias_parser
         self.chain_task_2 = prompt_task_2 | model | revision_parser
@@ -114,10 +117,9 @@ class ChatGPTChain:
         aggregated_result['revisions'] = revisions
 
         return aggregated_result
-
     def inference(self, query):
         full_article = query
-        sentences = list(segment("en", query))
+        sentences = list(segment(LANGUAGE[:1], query))
 
         results = []
         for sentence in sentences:
